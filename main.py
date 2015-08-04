@@ -39,7 +39,7 @@ def get_videos(channel):
       ).execute()
 
       for playlist_item in playlistitems_response['items']:
-        videos.append(playlist_item)
+        videos.append(playlist_item['snippet'])
         
       next_page_token = playlistitems_response.get('tokenPagination', {}).get(
         'nextPageToken')
@@ -49,9 +49,40 @@ def get_videos(channel):
   
     return videos
 
+# A function to get a video's comments
+def get_comments(video_id):
+  comments = []
+  next_page_token = ''
+
+  while next_page_token is not None:
+    comments_response = youtube.commentThreads().list(
+      videoId=video_id,
+      part='snippet,id',
+        maxResults=50,
+        pageToken=next_page_token
+    ).execute()
+    
+    for comment_item in comments_response['items']:
+      comments.append(comment_item['snippet']['topLevelComment']['snippet'])
+
+    next_page_token = comments_response.get('nextPageToken')
+
+    if len(comments) > 100:
+      break
+
+  return comments
+
+
 if __name__ == '__main__':
   channels = config.get('youtube', 'channels', '').split(',')
   for channel in channels:
     print channel
-    print get_videos(channel)
+    videos = get_videos(channel)
+    for video in videos:
+      id = video['resourceId']['videoId']
+      print video['title'], id
+      comments = get_comments(id)
+      for comment in comments:
+        print comment['authorDisplayName'], '--', comment['textDisplay']
+      print
     print
