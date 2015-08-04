@@ -5,10 +5,13 @@ from apiclient.discovery import build
 config = ConfigParser.ConfigParser()
 config.read('app.cfg')
 
+channels = config.get('youtube', 'channels', '').split(',')
+
 API_KEY = config.get('youtube', 'api_key', 'REPLACE_ME')
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 FREEBASE_SEARCH_URL = "https://www.googleapis.com/freebase/v1/search?%s"
+WATCH_URL = "https://www.youtube.com/watch?v="
 
 # Service for calling the YouTube API
 youtube = build(YOUTUBE_API_SERVICE_NAME,
@@ -71,6 +74,9 @@ def get_comments(video_id):
       break
 
   return comments
+
+def video_url(video_id):
+  return WATCH_URL+video_id
 
 
 if __name__ == '__main__':
