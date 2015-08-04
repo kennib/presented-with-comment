@@ -66,7 +66,10 @@ def get_comments(video_id):
     ).execute()
     
     for comment_item in comments_response['items']:
-      comments.append(comment_item['snippet']['topLevelComment']['snippet'])
+      comment_raw = comment_item['snippet']['topLevelComment']
+      comment = comment_raw['snippet']
+      comment['id'] = comment_raw['id']
+      comments.append(comment)
 
     next_page_token = comments_response.get('nextPageToken')
 
