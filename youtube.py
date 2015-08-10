@@ -26,7 +26,6 @@ def get_videos(channel):
   ).execute()
 
   channel_name = ''
-  videos = []
 
   for channel in channels_response['items']:
     uploads_list_id = channel['contentDetails']['relatedPlaylists']['uploads']
@@ -42,19 +41,15 @@ def get_videos(channel):
       ).execute()
 
       for playlist_item in playlistitems_response['items']:
-        videos.append(playlist_item['snippet'])
+        yield playlist_item['snippet']
         
       next_page_token = playlistitems_response.get('tokenPagination', {}).get(
         'nextPageToken')
       
-      if len(videos) > 100:
-        break
-  
-    return videos
+      
 
 # A function to get a video's comments
 def get_comments(video_id):
-  comments = []
   next_page_token = ''
 
   while next_page_token is not None:
@@ -69,14 +64,9 @@ def get_comments(video_id):
       comment_raw = comment_item['snippet']['topLevelComment']
       comment = comment_raw['snippet']
       comment['id'] = comment_raw['id']
-      comments.append(comment)
+      yield comment
 
     next_page_token = comments_response.get('nextPageToken')
-
-    if len(comments) > 100:
-      break
-
-  return comments
 
 def video_url(video_id):
   return WATCH_URL+video_id

@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import youtube
 import reddit
@@ -34,13 +34,18 @@ def store_comment(comment):
     """, (comment['id'], comment['site'], comment['video'],
           comment['date'], comment['author'], comment['comment'],
           comment['url'], comment['up_votes'], comment['down_votes']))
+    return comment
   except sqlite3.IntegrityError, e:
-    pass
+    return None
 
 # This function fetches all types of comments
 # and stores them in the database
 def fetch_store_comments(conn):
+  two_weeks_ago = datetime.now() - timedelta(days=14)
+  
   for channel in youtube.channels:
+    print "Channel:", channel
+
     for video in youtube.get_videos(channel):
       # Video data
       video_id = video['resourceId']['videoId']
@@ -52,6 +57,13 @@ def fetch_store_comments(conn):
         'title': video['title'],
         'url': video_url,
       }
+      video_date = datetime.strptime(video['date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+      
+
+      if video_date < two_weeks_ago:
+        break 
+
+      print "Video:", video['title']
 
       try:
         conn.execute("""INSERT INTO video
@@ -62,7 +74,10 @@ def fetch_store_comments(conn):
         pass
 
       # Youtube comment data
+      print "  Downloading Youtube comments"
+      num_comments = 0
       for comment in youtube.get_comments(video_id):
+        num_comments += 1
         comment = {
           'id': comment['id'],
           'site': 'youtube',
@@ -74,11 +89,20 @@ def fetch_store_comments(conn):
           'up_votes': comment['likeCount'],
           'down_votes': 0,
         }
-        store_comment(comment)
+
+        new_comment = store_comment(comment)
+        if not new_comment:
+          break
+
+      print "  Finished downloading ({}) Youtube comments".format(num_comments)
+
 
       # Reddit comment data
+      print "  Downloading Reddit comments"
+      num_comments = 0
       for thread in reddit.get_threads(video_url):
         for comment in reddit.get_comments(thread['id']):
+          num_comments += 1
           date = datetime.utcfromtimestamp(comment['created_utc']).isoformat() if 'created_utc' in comment else None
           if 'body' in comment:
             comment = {
@@ -92,9 +116,14 @@ def fetch_store_comments(conn):
               'up_votes': comment['ups'],
               'down_votes': comment['downs'],
             }
-            store_comment(comment)
 
-    conn.commit()
+            new_comment = store_comment(comment)
+            if not new_comment:
+              break
+
+      print "  Finished downloading ({}) Reddit comments".format(num_comments)
+
+      conn.commit()
   conn.close()
 
 if __name__ == '__main__':
