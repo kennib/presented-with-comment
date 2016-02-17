@@ -57,6 +57,7 @@ def get_comments(video_id):
       videoId=video_id,
       part='snippet,id',
         maxResults=50,
+        textFormat='plainText' #prevents getting empty strings for textDisplay (the actual comment) 
         pageToken=next_page_token
     ).execute()
     
